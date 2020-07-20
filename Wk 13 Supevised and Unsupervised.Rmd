@@ -1,0 +1,289 @@
+---
+title: 'Week 13 IP: Supervised and Unsupervised learning with R'
+author: "Caroline"
+date: "7/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+A Kenyan entrepreneur has created an online cryptography course and would want to advertise it on her blog. She currently targets audiences originating from various countries. In the past, she ran ads to advertise a related course on the same blog and collected data in the process. She would now like to employ your services as a Data Science Consultant to help her identify which individuals are most likely to click on her ads. 
+## Define task
+
+Build a model to direct the entrepreneur on whether an individual will click on the ad or not
+
+##Experimental Design
+
+1. Load and check the data
+2. Tidy  and analyse the data
+3. Implement the solution
+
+```{r}
+#Read libraries 
+#We'll use two main libraries dplyr and ggplot2
+
+library(dplyr)
+library(ggplot2)
+```
+
+#Read the data
+```{r}
+advertise <-read.csv("C:/Users/User/Downloads/advertising.csv")
+```
+
+#Read head
+
+```{r}
+head(advertise)
+```
+```{r}
+plot(advertise)
+```
+```{r}
+## Checking the data
+#The shape and structure of the data
+
+dim(advertise)
+
+#Data has 100o entries and 10 columns
+```
+
+
+
+```{r}
+## Check Structure
+
+str(advertise)
+
+# Variables are numbers or integers apart from Ad topic line and City which are factors 
+
+```
+# Find Outliers 
+
+From the box plots below. It is evident that only the area income field has outliers
+
+```{r}
+boxplot(advertise$Daily.Time.Spent.on.Site,xlab="Daily Time Spent on Site",main="Boxplot on Daily Time Spent on Site")
+boxplot(advertise$Age, xlab="Age",main="Boxplot on Age")
+boxplot(advertise$Area.Income,xlab="Area Income",main="Boxplot on Area Income")
+boxplot(advertise$Daily.Internet.Usage, xlab="Daily Internet Usage", main="Boxplot of Daily Internet Usage")
+boxplot(advertise$Male, xlab="Male", main="Boxplot of Male")
+boxplot(advertise$Clicked.on.Ad, xlab="Clicked on Ad", main="Boxplot of Clicked on Ad")
+
+
+
+```
+
+Tidying the data by checking missing values  and duplicates
+```{r}
+#Missing Data
+colSums(is.na(advertise))
+
+# This dataset has no missing data
+```
+```{r}
+# Finding Duplicates
+duplicated_rows <- advertise[duplicated(advertise),]
+duplicated_rows
+
+# This dataset does not have duplicated entries
+```
+#Univariate and Bivariate Analysis
+```{r}
+#Plot Histograms of the various variables 
+
+hist(advertise$Daily.Time.Spent.on.Site, breaks = 20,main ="Daily Time Spent on Site", col = "gray")
+hist(advertise$Age, breaks = 10,main = "Age",col = "gray")
+hist(advertise$Area.Income, breaks = 10, main = "Area Income",col = "gray")
+hist(advertise$Male,breaks = 10,main = "Male",col = "gray")
+hist(advertise$Clicked.on.Ad,breaks = 10,main = "Frequency of clicked on Ad",col = "gray")
+hist(advertise$Daily.Internet.Usage,breaks = 10,main = "Internet Usage",col = "gray")
+```
+
+From the above histograms we note the following:
+
+1. The highest age group is between 30-35.
+2. The highest amount of time spent on the site is 75-80 mins
+3. Income ranges from < 10,000 to 80,000 with most frequent clickers being those earning between 60,000 to 70,000. 
+4. Female shoppers are more than male
+5. There are 50 % chances of users clicking on Ad. 
+
+```{r}
+par(las=2, cex.axis=0.7)
+country <- table(advertise$Country)
+barplot(sort(country[1:40], decreasing = FALSE), main = "Country",col = terrain.colors(25))
+```
+From the barplot Australia has the highest no. of customers while Aruba has the least
+
+```{r}
+by_time <- advertise %>% 
+  group_by(Male) %>% 
+  summarise(Total.Time.Spent.on.Site = sum(Daily.Time.Spent.on.Site))
+p <- ggplot(by_time, aes(x = factor(Male), y = Total.Time.Spent.on.Site, fill = factor(Male)))+geom_bar(stat="identity")
+p + scale_fill_discrete(name = "Male", labels = c("Female","Male"))+ labs(title="Gender  vs Time on Internet", x="Gender")
+```
+
+Having identified relationships between variable we need to test correlation as well covariance
+
+```{r}
+numcol <-advertise[,c(1,2,3,4,7,10)]
+head(numcol)
+```
+```{r}
+covariance_matrix = cov(numcol)
+
+covariance <-as.data.frame(round(covariance_matrix,2))
+
+covariance
+```
+```{r}
+# Correlation Matrix
+correlation_matrix = cor(numcol)
+corr <- as.data.frame(round(correlation_matrix,2))
+corr
+```
+```{r}
+#Lets Plot correlation
+plot(corr)
+```
+Based on correlation above we can use the following fields to determine whether users will click on an Ad or not. 
+
+1. Age 
+2. Daily Internet Usage
+3. Daily Time Time spent on site
+4. Area Income
+
+```{r}
+##Insert Scatter Plot of area income vs Internet Usage ,  Area income vs Time spent on site , Internet usage Vs Time spent on Site
+
+```
+
+### Implementing the solution 
+
+The solution is a supervised model that predicts users who click on Ad. 
+
+```{r}
+#Load Libraries
+
+library(rpart)
+library(rpart.plot) # For Plotting
+library(e1071) #For SVM and Naives Bayes Algorithyms
+#install.packages("ISLR")
+library(ISLR) #For Decision Trees
+library(lattice) # For Data Analysis
+library(caret)
+library(caretEnsemble)
+```
+```{r}
+library(tidyverse)
+```
+##Support Vector Machines
+```{r}
+intrain <- createDataPartition(y = advertise$Clicked.on.Ad, p= 0.7, list = FALSE)
+training <- advertise[intrain,]
+testing <- advertise[-intrain,]
+
+dim(training); 
+dim(testing);
+
+training[["Clicked.on.Ad"]] = factor(training[["Clicked.on.Ad"]])
+
+
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+
+svm_Linear <- train(Clicked.on.Ad ~., data = training, method = "svmLinear",trControl=trctrl,preProcess = c("center", "scale"),tuneLength = 10)
+
+```
+```{r}
+# We can then check the reult of our train() model as shown below
+# ---
+# 
+svm_Linear
+# We can use the predict() method for predicting results as shown below. 
+# We pass 2 arguements, our trained model and our testing data frame.
+# ---
+# 
+test_pred <- predict(svm_Linear, newdata = testing)
+test_pred
+# Now checking for our accuracy of our model by using a confusion matrix 
+# ---
+# 
+confusionMatrix(table(test_pred, testing$Clicked.on.Ad))
+```
+## Naive Bayes
+```{r}
+install.packages('tidyverse')
+library(tidyverse)
+
+install.packages('ggplot2')
+library(ggplot2)
+
+install.packages('caret')
+library(caret)
+
+install.packages('caretEnsemble')
+library(caretEnsemble)
+
+install.packages('psych')
+library(psych)
+
+install.packages('Amelia')
+library(Amelia)
+
+install.packages('mice')
+library(mice)
+
+install.packages('GGally')
+library(GGally)
+
+install.packages('rpart')
+library(rpart)
+
+install.packages('randomForest')
+library(randomForest)
+```
+
+
+```{r}
+#advertise$Clicked.on.Ad <- factor(advertise$Clicked.on.Ad, levels = c(0,1), labels = c("False", "True"))
+indxTrain <- createDataPartition(y = advertise$Clicked.on.Ad,p = 0.75,list = FALSE)
+training <- advertise[indxTrain,]
+testing <- advertise[-indxTrain,]
+ 
+```
+# Comparing the outcome of the training and testing phase
+# ---
+# Creating objects x which holds the predictor variables and y which holds the response variables
+
+```{r}
+#
+x = training[,1:4]
+y = training$Clicked.on.Ad
+# Loading our inbuilt e1071 package that holds the Naive Bayes function.
+# ---
+# 
+library(e1071)
+# Now building our model 
+# ---
+
+library(klaR)
+library(klaR)
+model = train(x,y,'nb',trControl=trainControl(method='cv',number=10))
+```
+```{r}
+# Model Evalution
+# ---
+# Predicting our testing set
+Predict <- predict(model,newdata = testing )
+
+# Getting the confusion matrix to see accuracy value and other parameter values
+
+> confusionMatrix(Predict, testing$Clicked.on.Ad )
+```
+SVM worked fine for the dataset and had high accuracy.There is a challenge with packages used for Naives Bayes and thus was not completed. 
+
+This been a classification challenge, It would be recommended to use classification models. 
