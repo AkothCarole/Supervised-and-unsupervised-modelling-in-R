@@ -1,0 +1,158 @@
+---
+title: "Unsupervised. Understanding Customer Behaviour"
+author: "Caroline"
+date: "7/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background Info
+Kira Plastinina is a Russian brand that is sold through a defunct chain of retail stores in Russia, Ukraine, Kazakhstan, Belarus, China, Philippines, and Armenia. The brand’s Sales and Marketing team would like to understand their customer’s behavior from data that they have collected over the past year. More specifically, they would like to learn the characteristics of customer groups.
+
+This exercise will perform clustering stating insights drawn from your analysis and visualizations.
+Upon implementation, provide comparisons between the approaches learned this week i.e. K-Means clustering vs Hierarchical clustering highlighting the strengths and limitations of each approach in the context of your analysis. 
+Your findings should help inform the team in formulating the marketing and sales strategies of the brand. 
+
+You will create a Markdown which will comprise the following sections. 
+
+###Problem Definition
+Understand customers and  customize them based on bahaviour for marketing purposes. 
+
+
+##Experimental design
+Data Sourcing
+Check the Data
+Perform Data Cleaning
+Perform Exploratory Data Analysis  (Univariate, Bivariate & Multivariate)
+Implement the Solution
+Challenge the Solution
+Follow up Questions
+
+
+##Check data
+```{r}
+shop <- read.csv("C:/Users/User/Downloads/online_shoppers_intention.csv")
+head (shop)
+```
+
+## Check structure and summary
+```{r}
+str(shop)
+
+```
+
+Dataset is made up of 12330 entries and 18 columns. Most columns are Numbers and integers with Month, Visitor Type being factors. 
+```{r}
+summary(shop) #To check statistics
+```
+##Find Missing Entries
+```{r}
+colSums(is.na(shop))
+```
+Dataset has missing values 
+
+## Find Duplicates
+```{r}
+duplicated_rows <- shop[duplicated(shop),]
+duplicated_rows
+```
+##Find Outliers
+```{r}
+boxplot(shop$Administrative_Duration,xlab="Administrative Duration",main="Boxplot on Administrative Duration")
+boxplot(shop$Informational, xlab="Informational",main="Boxplot on Informational")
+boxplot(shop$Informational_Duration,xlab="Area Income",main="Boxplot on Informational duration")
+boxplot(shop$ProductRelated, xlab="ProductRelated", main="Boxplot of ProductRelated")
+boxplot(shop$BounceRates, xlab="BounceRates",main="Boxplot of BounceRates")
+boxplot(shop$ExitRates,xlab="ExitRates",main="Boxplot of ExitRates")
+boxplot(shop$PageValues, xlab="PageValues", main="Boxplot of PageValues")
+boxplot(shop$SpecialDay, xlab="SpecialDay",main="Boxplot of SpecialDay")
+boxplot(shop$Browser,xlab="Browser",main="Boxplot of Browser")
+boxplot(shop$Region, xlab="Region", main="Boxplot of Region")
+boxplot(shop$TrafficType, xlab="TrafficType", main="Boxplot of TrafficType")
+
+#### All variables have outliers 
+```
+## Univariate and Bivariate 
+
+```{r}
+admin <- shop$Administrative
+duration <- shop$Administrative_Duration
+infomation <- shop$Informational
+info_duration <- shop$Informational_Duration
+product <- shop$ProductRelated
+product_related <- shop$ProductRelated_Duration
+exitrates <- shop$ExitRates
+bouncerates <- shop$BounceRates
+pagevalues <- shop$PageValues
+# Administrative
+plot(admin,exitrates,main = "Relationship between the Administrative and Exit Rate", xlab="Administrative", ylab="Exit Rate")
+plot(admin,bouncerates,main = "Relationship between the Admintrative and Bounce Rate",xlab="Administrative",ylab = "Bounce Rate")
+plot(infomation,exitrates,main = "Relationship between the Informational and Exit Rate",xlab = "Informational",ylab = "Exit Rates")
+plot(infomation, info_duration, main = "Relationship between the Informational and Informational Duration", xlab = "Informational",ylab = "Informational Duration")
+plot(product, product_related, main = "Relationship between the Product and Product Related Duration",xlab="Product Related",ylab ="Product Related Duration")
+plot(admin,bouncerates, main = "Relationship between Admin and Bounce Rates", xlab = "Administrative Duration", ylab = "Bounce Rates")
+plot(product_related, infomation,main = "Relationship between ProductRelated and Informational", xlab = "Product Related Duration",ylab = "Information")
+plot(duration,product_related,main = "Relationship between Admin Duration and ProductRelated Duration", xlab = "Administrative Duration", ylab = "Product Related Duration")
+
+```
+From the visualization, We note the following:
+1. Product  and product relation is highly related
+2. 
+
+### Heat map of the data
+```{r}
+htdata() <- shop[, c(1,2,3,4,5,6,7,8,9,10)]
+head(htdata)
+cormat <- round(cor(htdata),2)
+head(cormat)
+library(reshape2)
+melted_cormat <- melt(cormat)
+head(melted_cormat)
+library(ggplot2)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+```
+
+### Implementing the solution
+##Hierarchial Clustering
+```{r}
+#Data Scaling
+data <- shop[,-18]
+data <- scale(data)
+head(data)
+
+```
+```{r}
+#Euclidean distance
+distance <- dist(data, method = "euclidean")
+```
+```{r}
+# apply the h-clustering
+modelcomplete <- hclust(distance, method = "complete")
+modelward <- hclust(distance, method = "ward.D")
+modelward2 <- hclust(distance, method = "ward.D2")
+modelsingle <- hclust(distance, method = "single")
+modelaverage <- hclust(distance, method = "average")
+modelmcquitty <- hclust(distance, method = "mcquitty")
+modelmedian <- hclust(distance, method = "median")
+modelcentroid <- hclust(distance , method = "centroid")
+```
+
+Plot Dendograms
+```{r}
+plot(modelcomplete, cex = 0.6, hang = -1)
+plot(modelward, cex = 0.6, hang = -1)
+plot(modelward2, cex = 0.6, hang = -1)
+plot(modelsingle, cex = 0.6, hang = -1)
+plot(modelaverage, cex = 0.6, hang = -1)
+plot(modelmcquitty, cex = 0.6, hang = -1)
+plot(modelmedian, cex = 0.6, hang = -1)
+plot(modelcentroid, cex = 0.6, hang =-1)
+```
+
+Conclusion
+
+Teh exercise couldnt measure the performance of the model. Its not not possible to classify
